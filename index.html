@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <link rel="icon" type="image/png" href="favicon-32x32.png">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ohm's Law Calculator</title>
+
+<style>
+* { box-sizing: border-box; }
+
+:root {
+    --bg: #f4f4f4;
+    --card: #ffffff;
+    --text: #333;
+    --input: #ffffff;
+    --border: #ccc;
+    --success: #28a745;
+    --error: #dc3545;
+}
+
+body.dark {
+    --bg: #121212;
+    --card: #1e1e1e;
+    --text: #f1f1f1;
+    --input: #2a2a2a;
+    --border: #444;
+}
+
+body {
+    font-family: Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    margin: 0;
+    padding: 15px;
+    transition: 0.3s;
+}
+
+.container {
+    max-width: 420px;
+    margin: auto;
+    background: var(--card);
+    padding: 22px;
+    border-radius: 14px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.25);
+}
+
+.top-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+h1 {
+    font-size: 22px;
+    margin: 0;
+}
+
+.formula {
+    text-align: center;
+    font-size: 13px;
+    opacity: 0.7;
+    margin: 14px 0;
+}
+
+label {
+    font-weight: bold;
+    margin-top: 12px;
+    display: block;
+}
+
+.input-row {
+    display: flex;
+    gap: 8px;
+}
+
+input, select {
+    width: 100%;
+    height: 48px;
+    padding: 12px;
+    margin-top: 6px;
+    font-size: 16px;
+    background: var(--input);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+}
+
+button {
+    width: 100%;
+    padding: 14px;
+    margin-top: 14px;
+    font-size: 16px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+}
+
+.calc { background: var(--success); color: white; }
+.reset { background: #6c757d; color: white; }
+
+.result {
+    margin-top: 18px;
+    text-align: center;
+    font-size: 18px;
+    font-weight: bold;
+    min-height: 24px;
+}
+
+.success { color: var(--success); }
+.error { color: var(--error); }
+
+.theme-toggle {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.switch {
+    position: relative;
+    width: 46px;
+    height: 24px;
+}
+
+.switch input { opacity: 0; }
+
+.slider {
+    position: absolute;
+    inset: 0;
+    background: #ccc;
+    border-radius: 24px;
+    transition: 0.3s;
+}
+
+.slider::before {
+    content: "";
+    position: absolute;
+    height: 18px;
+    width: 18px;
+    left: 3px;
+    bottom: 3px;
+    background: white;
+    border-radius: 50%;
+    transition: 0.3s;
+}
+
+input:checked + .slider {
+    background: var(--success);
+}
+
+input:checked + .slider::before {
+    transform: translateX(22px);
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+    <div class="top-bar">
+        <h1>⚡ Ohm’s Law</h1>
+        <div class="theme-toggle">
+            ☀️
+            <label class="switch">
+                <input type="checkbox" id="themeToggle" onchange="toggleTheme()">
+                <span class="slider"></span>
+            </label>
+            🌙
+        </div>
+    </div>
+
+    <div class="formula">
+        V = I × R &nbsp; | &nbsp; I = V ÷ R &nbsp; | &nbsp; R = V ÷ I
+    </div>
+
+    <label>Voltage</label>
+    <div class="input-row">
+        <input type="number" id="voltage">
+        <select id="vUnit">
+            <option value="1">V</option>
+            <option value="0.001">mV</option>
+            <option value="1000">kV</option>
+        </select>
+    </div>
+
+    <label>Current</label>
+    <div class="input-row">
+        <input type="number" id="current">
+        <select id="iUnit">
+            <option value="1">A</option>
+            <option value="0.001">mA</option>
+            <option value="0.000001">µA</option>
+        </select>
+    </div>
+
+    <label>Resistance</label>
+    <div class="input-row">
+        <input type="number" id="resistance">
+        <select id="rUnit">
+            <option value="1">Ω</option>
+            <option value="1000">kΩ</option>
+            <option value="1000000">MΩ</option>
+        </select>
+    </div>
+
+    <button class="calc" onclick="calculate()">Calculate</button>
+    <button class="reset" onclick="resetFields()">Reset</button>
+
+    <div id="result" class="result"></div>
+</div>
+
+<script>
+const toggle = document.getElementById("themeToggle");
+
+function toggleTheme() {
+    document.body.classList.toggle("dark");
+    localStorage.setItem(
+        "theme",
+        document.body.classList.contains("dark") ? "dark" : "light"
+    );
+}
+
+if (localStorage.getItem("theme") === "dark") {
+    document.body.classList.add("dark");
+    toggle.checked = true;
+}
+
+function formatNumber(num) {
+    return Number.isInteger(num) ? num : parseFloat(num.toFixed(3));
+}
+
+function formatWithUnit(value, type) {
+    const units = {
+        V: [
+            { v: 1e6, u: "MV" },
+            { v: 1e3, u: "kV" },
+            { v: 1, u: "V" },
+            { v: 1e-3, u: "mV" }
+        ],
+        A: [
+            { v: 1, u: "A" },
+            { v: 1e-3, u: "mA" },
+            { v: 1e-6, u: "µA" }
+        ],
+        Ω: [
+            { v: 1e6, u: "MΩ" },
+            { v: 1e3, u: "kΩ" },
+            { v: 1, u: "Ω" }
+        ]
+    };
+
+    for (let unit of units[type]) {
+        if (value >= unit.v) {
+            return formatNumber(value / unit.v) + " " + unit.u;
+        }
+    }
+    return value + " " + type;
+}
+
+function calculate() {
+    const v = parseFloat(voltage.value) * parseFloat(vUnit.value);
+    const i = parseFloat(current.value) * parseFloat(iUnit.value);
+    const r = parseFloat(resistance.value) * parseFloat(rUnit.value);
+    const result = document.getElementById("result");
+
+    result.className = "result";
+
+    const filled = [v, i, r].filter(x => !isNaN(x)).length;
+    if (filled !== 2) {
+        showError("Enter exactly TWO values.");
+        return;
+    }
+
+    if (!isNaN(v) && !isNaN(i)) {
+        if (i === 0) return showError("Current cannot be zero.");
+        showSuccess(`Resistance = ${formatWithUnit(v / i, "Ω")}`);
+    } 
+    else if (!isNaN(i) && !isNaN(r)) {
+        showSuccess(`Voltage = ${formatWithUnit(i * r, "V")}`);
+    } 
+    else if (!isNaN(v) && !isNaN(r)) {
+        if (r === 0) return showError("Resistance cannot be zero.");
+        showSuccess(`Current = ${formatWithUnit(v / r, "A")}`);
+    }
+
+    function showSuccess(msg) {
+        result.textContent = msg;
+        result.classList.add("success");
+    }
+
+    function showError(msg) {
+        result.textContent = msg;
+        result.classList.add("error");
+    }
+}
+
+function resetFields() {
+    voltage.value = "";
+    current.value = "";
+    resistance.value = "";
+    document.getElementById("result").textContent = "";
+}
+</script>
+
+</body>
+</html>
